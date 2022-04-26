@@ -20,12 +20,28 @@ int posPrev [6] = {0, 0, 0, 0, 0, 0}; // previous position of encoder
 volatile int pos_i [6] = {0, 0, 0, 0, 0, 0};
 volatile float velocity_i [6] = {0, 0, 0, 0, 0, 0};
 volatile long prevT_i = 0;
-
 float vFilt [6] = {0, 0, 0, 0, 0, 0};
 float vPrev [6] = {0, 0, 0, 0, 0, 0};
 
+// paramters for motion
+int touchpad_count = 1;
+int count_to_rpm = 1/4776.384*4*60.0; // depends on motor resolution
+float maxv = 60.0; // in RPM, should not be close to 84
+float kp = 10.0; // proportional gain for P control
+long unittime = 20000; // time for the loop in microseconds
+float gain = 0.035; // gain from finger velocity to motor velocity
+int maxpwr = 192; // 255 at max, smaller if battery V > motor V
+float accrate = 240.0; // in RPM/s
+float decrate = 120.0; // in RPM/s
+float hardstoprate = 600.0; // in RPM/s
+float unitacc = accrate*unittime/10e6; // acceleration in RPM per unit time
+float unitdec = decrate*unittime/10e6; // deceleration in RPM per unit time
+float uniths = hardstoprate*unittime/10e6; // hard stop rate in RPM per unit time
+
+// creating the touchpad object
 Adafruit_PS2_Mouse ps2(PS2_CLK, PS2_DATA);
 
+// initializing variables
 int count = 0;
 int x = 0;
 int y = 0;
@@ -35,6 +51,14 @@ float vxFilt = 0;
 float vyFilt = 0;
 float vxPrev = 0;
 float vyPrev = 0;
+float vxf = 0;
+float vyf = 0;
+float vxd = 0;
+float vyd = 0;
+float vxgoal = 0;
+float vygoal = 0;
+float vxlim = 0;
+float vylim = 0;
 
 void setup() {
   ps2.begin();
@@ -71,11 +95,10 @@ void loop() {
     }
   }
 
-  // Compute velocity with method 1
+  // measure current time
   long currT = micros();
 
-  // touchpad stuff
-  int touchpad_count = 5;
+  // touchpad signal
   if(count >= touchpad_count){
     count = 0;
   }
@@ -112,7 +135,7 @@ void loop() {
   // Convert count/s to RPM
   float v [6];
   for(int i=1; i<6; i++){
-    v[i] = velocity[i]/4776.384*4*60.0;
+    v[i] = velocity[i]*count_to_rpm;
   }
 
   // Low-pass filter for motor velocities (25 Hz cutoff)
@@ -127,28 +150,91 @@ void loop() {
   vxPrev = vx;
   vyFilt = 0.854*vyFilt + 0.0728*vy + 0.0728*vyPrev;
   vyPrev = vy;
-  float gain = 0.05; // gain from finger velocity to motor velocity
+
+  // multiply by gain
   float vxf = vxFilt*gain;
   float vyf = vyFilt*gain;
+
+  // update goal
+  if(fabs(vxf) > fabs(vxgoal) || vxf*vxgoal < 0){
+    vxgoal = vxf;
+  }
+  if(fabs(vyf) > fabs(vygoal) || vyf*vygoal < 0){
+    vygoal = vyf;
+  }
+
+  if(vxgoal*vxd < 0){ // hard stop for x
+    if(fabs(vxd) > uniths){
+      if(vxd > 0) vxd -= uniths;
+      else vxd += uniths;
+    }
+    else vxd = 0;
+  }
+  else if(fabs(vxgoal) > fabs(vxd)){ // slow acceleration for x
+    if(fabs(vxgoal-vxd) > unitacc){
+      if(vxgoal > 0) vxd += unitacc;
+      else vxd -= unitacc;
+    }
+    else{
+      vxd = vxgoal;
+      vxgoal = 0; // initialize vxgoal
+    }
+  }
+  else{ // slow deceleration for x
+    if(fabs(vxd) > unitdec){
+      if(vxd > 0) vxd -= unitdec;
+      else vxd += unitdec;
+    }
+    else vxd = 0;
+  }
+
+  // same thing for y
+  if(vygoal*vyd < 0){ // hard stop for y
+    if(fabs(vyd) > uniths){
+      if(vyd > 0) vyd -= uniths;
+      else vyd += uniths;
+    }
+    else vyd = 0;
+  }
+  else if(fabs(vygoal) > fabs(vyd)){ // slow acceleration for y
+    if(fabs(vygoal-vyd) > unitacc){
+      if(vygoal > 0) vyd += unitacc;
+      else vyd -= unitacc;
+    }
+    else{
+      vyd = vygoal;
+      vygoal = 0; // initialize vygoal
+    }
+  }
+  else{ // slow deceleration for y
+    if(fabs(vyd) > unitdec){
+      if(vyd > 0) vyd -= unitdec;
+      else vyd += unitdec;
+    }
+    else vyd = 0;
+  }
+  
   
   // limits vx and vy with same ratio
-  float maxv = 60.0; // in RPM, should not be close to 84
-  float overratio = sqrt(vxf*vxf+vyf*vyf)/maxv;
+  float overratio = sqrt(vxd*vxd+vyd*vyd)/maxv;
   if(overratio > 1.0){
-    vxf = vxf/overratio;
-    vyf = vyf/overratio;
+    vxlim = vxd/overratio;
+    vylim = vyd/overratio;
+  }
+  else{
+    vxlim = vxd;
+    vylim = vyd;
   }
 
   float vdesired [6];
   float angles [6] = {0, PI*0.2, PI*0.6, PI*1.0, PI*1.4, PI*1.8};
   // calculate desired velocity for each motors
   for(int i=1; i<6; i++){
-    vdesired[i] = vxf*cos(angles[i])+vyf*sin(angles[i]);
+    vdesired[i] = vxlim*cos(angles[i])+vylim*sin(angles[i]);
   }
 
   // Compute the control signal u, which decides the voltages through
   // the motors
-  float kp = 5.0; // proportional gain for P control
   float e [6];
   float u [6];
   for(int i=1; i<6; i++){
@@ -163,7 +249,6 @@ void loop() {
       dir[i] = 1;
     }
   }
-  int maxpwr = 192;
   int pwr [6];
   for(int i=1; i<6; i++){
     pwr[i] = (int) fabs(u[i]);
@@ -173,7 +258,6 @@ void loop() {
   }
 
   // send signals to motors
-  long unittime = 10000;
   for(int i=1; i<6; i++){
     setMotor(dir[i], pwr[i], PWM[i], DIR[i]);
   }
@@ -185,7 +269,8 @@ void loop() {
     for(int i=1; i<6; i++){
       setMotor(dir[i], 0, PWM[i], DIR[i]);
     }
-    delay(10000); // stop for 10 seconds, increase the unittime!
+    delay(10000);
+    // stop for 10 seconds. if this happens, increase the unittime!
   }
 }
 

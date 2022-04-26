@@ -30,17 +30,17 @@ PS/2 pin #6 (Red)    - N/C
 */
 
 // PS2 uses two digital pins
-#define PS2_DATA 8
-#define PS2_CLK 9
+#define PS2_DATA 10
+#define PS2_CLK 11
 
 //Adafruit_PS2 ps2(PS2_CLK, PS2_DATA);
 
 // Use thid declaration when you want the trackpad to act like a 'mouse'
 // with relative positioning
-Adafruit_PS2_Mouse ps2(PS2_CLK, PS2_DATA);
+// Adafruit_PS2_Mouse ps2(PS2_CLK, PS2_DATA);
 
 // Use this declaration when you want 'absolute' tablet mode
-//Adafruit_PS2_Trackpad ps2(PS2_CLK, PS2_DATA);
+Adafruit_PS2_Trackpad ps2(PS2_CLK, PS2_DATA);
 
 void setup() {
   Serial.begin(9600);
@@ -62,14 +62,14 @@ void loop() {
 
   if (! ps2.readData()) return;
 
-  //Serial.print("0x");
-  //Serial.print(ps2.status, HEX); Serial.print("\t");
-  //Serial.print("X = "); Serial.print(ps2.x, DEC); Serial.print("\t");
-  //Serial.print("Y = "); Serial.print(ps2.y, DEC); Serial.print("\t");
-  //Serial.print("Z = "); Serial.print(ps2.z); 
-  Serial.print(ps2.x);
-  Serial.print(",");
-  Serial.println(ps2.y);
+  Serial.print("0x");
+  Serial.print(ps2.status, HEX); Serial.print("\t");
+  Serial.print("X = "); Serial.print(ps2.x, DEC); Serial.print("\t");
+  Serial.print("Y = "); Serial.print(ps2.y, DEC); Serial.print("\t");
+  Serial.print("Z = "); Serial.print(ps2.z); 
+  //Serial.print(ps2.x);
+  //Serial.print(",");
+  //Serial.println(ps2.y);
   
   
   /*

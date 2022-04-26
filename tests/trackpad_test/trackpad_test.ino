@@ -30,8 +30,8 @@ PS/2 pin #6 (Red)    - N/C
 */
 
 // PS2 uses two digital pins
-#define PS2_DATA 8
-#define PS2_CLK 9
+#define PS2_DATA 10
+#define PS2_CLK 11
 
 //Adafruit_PS2 ps2(PS2_CLK, PS2_DATA);
 
