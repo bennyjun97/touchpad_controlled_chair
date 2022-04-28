@@ -43,25 +43,11 @@ int rotatepwr = 150; // less than 255
 Adafruit_PS2_Mouse ps2(PS2_CLK, PS2_DATA);
 
 // initializing variables
-int count = 0;
-int x = 0;
-int y = 0;
-float vx = 0;
-float vy = 0;
-float vxFilt = 0;
-float vyFilt = 0;
-float vxPrev = 0;
-float vyPrev = 0;
-float vxf = 0;
-float vyf = 0;
-float vxd = 0;
-float vyd = 0;
-float vxgoal = 0;
-float vygoal = 0;
-float vxlim = 0;
-float vylim = 0;
-boolean rotateleft = false;
-boolean rotateright = false;
+int count = 0, x = 0, y = 0;
+float vx = 0, vy = 0, vxFilt = 0, vyFilt = 0, vxPrev = 0, vyPrev = 0;
+float vxf = 0, vyf = 0, vxd = 0, vyd = 0;
+float vxgoal = 0, vygoal = 0, vxlim = 0, vylim = 0;
+boolean rotateleft = false, rotateright = false;
 
 void setup() {
   ps2.begin();
@@ -286,7 +272,7 @@ void loop() {
   }
 
   // send signals to motors
-  for(int i=1;0 i<6; i++){
+  for(int i=1; i<6; i++){
     setMotor(dir[i], pwr[i], PWM[i], DIR[i]);
   }
   long delaytime = unittime-(micros()-currT);
