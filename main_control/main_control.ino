@@ -88,9 +88,7 @@ void loop() {
   long currT = micros();
 
   // touchpad signal
-  if(count >= touchpad_count){
-    count = 0;
-  }
+  if(count >= touchpad_count) count = 0;
   if(count == 0){
     if(ps2.readData()){
       if(ps2.left) rotateleft = true;
@@ -100,15 +98,10 @@ void loop() {
       y = ps2.y;
       // x and y values exceeding 127 means that the finger moved
       // in negative direction
-      if(x>127){
-        x=x-256;
-      }
-      if(y>127){
-        y=y-256;
-      }
+      if(x>127) x -= 256;
+      if(y>127) y -= 256;
       vx = x/deltaT; // calculate x velocity
       vy = y/deltaT; // calculate y velocity
-    
       prevT_touch = currT;
     }
   }
@@ -236,16 +229,12 @@ void loop() {
   // Set the motor speed and direction
   int dir [6] = {0, -1, -1, -1, -1, -1};
   for(int i=1; i<6; i++){
-    if(u[i]<0){
-      dir[i] = 1;
-    }
+    if(u[i]<0) dir[i] = 1;
   }
   int pwr [6];
   for(int i=1; i<6; i++){
     pwr[i] = (int) fabs(u[i]);
-    if(pwr[i] > maxpwr){
-      pwr[i] = maxpwr;
-    }
+    if(pwr[i] > maxpwr) pwr[i] = maxpwr;
   }
 
   // if left or right button are clicked, rotate instead
@@ -255,20 +244,14 @@ void loop() {
       pwr[i] = rotatepwr;
       dir[i] = 1;
     }
-    vxgoal = 0;
-    vygoal = 0;
-    vxd = 0;
-    vyd = 0;
+    vxgoal = vygoal = vxd = vyd = 0;
   }
   else if(rotateright){
     for(int i=1; i<6; i++){
       pwr[i] = rotatepwr;
       dir[i] = -1;
     }
-    vxgoal = 0;
-    vygoal = 0;
-    vxd = 0;
-    vyd = 0;
+    vxgoal = vygoal = vxd = vyd = 0;
   }
 
   // send signals to motors
@@ -276,29 +259,20 @@ void loop() {
     setMotor(dir[i], pwr[i], PWM[i], DIR[i]);
   }
   long delaytime = unittime-(micros()-currT);
-  if(delaytime > 0){
-    delayMicroseconds(delaytime);
-  }
+  if(delaytime > 0) delayMicroseconds(delaytime);
   else{
     for(int i=1; i<6; i++){
       setMotor(dir[i], 0, PWM[i], DIR[i]);
     }
     delay(10000); // stop for 10 seconds. if this happens, increase the unittime!
   }
-  rotateleft = false;
-  rotateright = false;
+  rotateleft = rotateright = false;
 }
 
 void setMotor(int dir, int pwmVal, int pwm, int in1){
   analogWrite(pwm,pwmVal); // Motor speed
-  if(dir == 1){ 
-    // Turn one way
-    digitalWrite(in1,HIGH);
-  }
-  else if(dir == -1){
-    // Turn the other way
-    digitalWrite(in1,LOW);
-  }
+  if(dir == 1) digitalWrite(in1,HIGH); // Turn one way
+  else if(dir == -1) digitalWrite(in1,LOW); // Turn the other way
 }
 
 // Interrupt Service Routine Functions
@@ -309,12 +283,10 @@ void readEncoder1(){
   int b = digitalRead(ENCB[index]);
   int increment = 0;
   if(b>0){
-    // If B is high, increment forward
-    increment = 1;
+    increment = 1; // If B is high, increment forward
   }
   else{
-    // Otherwise, increment backward
-    increment = -1;
+    increment = -1; // Otherwise, increment backward
   }
   pos_i[index] = pos_i[index] + increment;
 }
