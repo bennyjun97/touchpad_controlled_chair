@@ -14,14 +14,14 @@ int DIR [6] = {0, 44, 46, 48, 50, 52}; // direction for motors
 #define PI 3.14159265
 long prevT = 0; // previous time for motor updates
 long prevT_touch = 0; // previous time for touchpad updates
-int posPrev [6] = {0, 0, 0, 0, 0, 0}; // previous position of encoder
+int posPrev [6]; // previous position of encoder
 // Use the "volatile" directive for variables
 // used in an interrupt
-volatile int pos_i [6] = {0, 0, 0, 0, 0, 0};
-volatile float velocity_i [6] = {0, 0, 0, 0, 0, 0};
+volatile int pos_i [6];
+volatile float velocity_i [6];
 volatile long prevT_i = 0;
-float vFilt [6] = {0, 0, 0, 0, 0, 0};
-float vPrev [6] = {0, 0, 0, 0, 0, 0};
+float vFilt [6];
+float vPrev [6];
 
 // paramters for motion
 int touchpad_count = 1;
@@ -77,7 +77,7 @@ void setup() {
 void loop() {
   // read the position in an atomic block
   // to avoid potential misreads
-  int pos [6] = {0, 0, 0, 0, 0, 0};
+  int pos [6];
   ATOMIC_BLOCK(ATOMIC_RESTORESTATE){
     for(int i=1; i<6; i++){
       pos[i] = pos_i[i];
@@ -303,7 +303,6 @@ void setMotor(int dir, int pwmVal, int pwm, int in1){
 
 // Interrupt Service Routine Functions
 // They cannot have parameters, so 5 functions are written separately
-
 void readEncoder1(){
   // Read encoder B when ENCA rises
   int index = 1;
@@ -321,65 +320,37 @@ void readEncoder1(){
 }
 
 void readEncoder2(){
-  // Read encoder B when ENCA rises
   int index = 2;
   int b = digitalRead(ENCB[index]);
   int increment = 0;
-  if(b>0){
-    // If B is high, increment forward
-    increment = 1;
-  }
-  else{
-    // Otherwise, increment backward
-    increment = -1;
-  }
+  if(b>0) increment = 1;
+  else increment = -1;
   pos_i[index] = pos_i[index] + increment;
 }
 
 void readEncoder3(){
-  // Read encoder B when ENCA rises
   int index = 3;
   int b = digitalRead(ENCB[index]);
   int increment = 0;
-  if(b>0){
-    // If B is high, increment forward
-    increment = 1;
-  }
-  else{
-    // Otherwise, increment backward
-    increment = -1;
-  }
+  if(b>0) increment = 1;
+  else increment = -1;
   pos_i[index] = pos_i[index] + increment;
 }
 
 void readEncoder4(){
-  // Read encoder B when ENCA rises
   int index = 4;
   int b = digitalRead(ENCB[index]);
   int increment = 0;
-  if(b>0){
-    // If B is high, increment forward
-    increment = 1;
-  }
-  else{
-    // Otherwise, increment backward
-    increment = -1;
-  }
+  if(b>0) increment = 1;
+  else increment = -1;
   pos_i[index] = pos_i[index] + increment;
 }
 
 void readEncoder5(){
-  // Read encoder B when ENCA rises
   int index = 5;
   int b = digitalRead(ENCB[index]);
   int increment = 0;
-  if(b>0){
-    // If B is high, increment forward
-    increment = 1;
-  }
-  else{
-    // Otherwise, increment backward
-    increment = -1;
-  }
+  if(b>0) increment = 1;
+  else increment = -1;
   pos_i[index] = pos_i[index] + increment;
 }
