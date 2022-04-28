@@ -27,16 +27,17 @@ float vPrev [6] = {0, 0, 0, 0, 0, 0};
 int touchpad_count = 1;
 int count_to_rpm = 1/4776.384*4*60.0; // depends on motor resolution
 float maxv = 60.0; // in RPM, should not be close to 84
-float kp = 10.0; // proportional gain for P control
+float kp = 20.0; // proportional gain for P control
 long unittime = 20000; // time for the loop in microseconds
 float gain = 0.035; // gain from finger velocity to motor velocity
-int maxpwr = 192; // 255 at max, smaller if battery V > motor V
+int maxpwr = 210; // 255 at max, smaller if battery V > motor V
 float accrate = 240.0; // in RPM/s
 float decrate = 120.0; // in RPM/s
 float hardstoprate = 600.0; // in RPM/s
 float unitacc = accrate*unittime/10e6; // acceleration in RPM per unit time
 float unitdec = decrate*unittime/10e6; // deceleration in RPM per unit time
 float uniths = hardstoprate*unittime/10e6; // hard stop rate in RPM per unit time
+int rotatepwr = 150; // less than 255
 
 // creating the touchpad object
 Adafruit_PS2_Mouse ps2(PS2_CLK, PS2_DATA);
@@ -59,6 +60,8 @@ float vxgoal = 0;
 float vygoal = 0;
 float vxlim = 0;
 float vylim = 0;
+boolean rotateleft = false;
+boolean rotateright = false;
 
 void setup() {
   ps2.begin();
@@ -104,6 +107,8 @@ void loop() {
   }
   if(count == 0){
     if(ps2.readData()){
+      if(ps2.left) rotateleft = true;
+      else if(ps2.right) rotateright = true;
       float deltaT = ((float)(currT-prevT_touch))/1.0e6;
       x = ps2.x;
       y = ps2.y;
@@ -257,8 +262,31 @@ void loop() {
     }
   }
 
+  // if left or right button are clicked, rotate instead
+  // this part of the code is for prototype only, need to be revised
+  if(rotateleft){
+    for(int i=1; i<6; i++){
+      pwr[i] = rotatepwr;
+      dir[i] = 1;
+    }
+    vxgoal = 0;
+    vygoal = 0;
+    vxd = 0;
+    vyd = 0;
+  }
+  else if(rotateright){
+    for(int i=1; i<6; i++){
+      pwr[i] = rotatepwr;
+      dir[i] = -1;
+    }
+    vxgoal = 0;
+    vygoal = 0;
+    vxd = 0;
+    vyd = 0;
+  }
+
   // send signals to motors
-  for(int i=1; i<6; i++){
+  for(int i=1;0 i<6; i++){
     setMotor(dir[i], pwr[i], PWM[i], DIR[i]);
   }
   long delaytime = unittime-(micros()-currT);
@@ -269,9 +297,10 @@ void loop() {
     for(int i=1; i<6; i++){
       setMotor(dir[i], 0, PWM[i], DIR[i]);
     }
-    delay(10000);
-    // stop for 10 seconds. if this happens, increase the unittime!
+    delay(10000); // stop for 10 seconds. if this happens, increase the unittime!
   }
+  rotateleft = false;
+  rotateright = false;
 }
 
 void setMotor(int dir, int pwmVal, int pwm, int in1){

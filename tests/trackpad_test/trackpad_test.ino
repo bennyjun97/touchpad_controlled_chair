@@ -44,6 +44,7 @@ Adafruit_PS2_Mouse ps2(PS2_CLK, PS2_DATA);
 
 void setup() {
   Serial.begin(9600);
+  Serial.println("Successfully connected to serial");
   if (ps2.begin()) 
     Serial.println("Successfully found PS2 mouse device");
   else
